@@ -5,7 +5,7 @@
 # Must run script with /usr/bin/time/v
 
 import argparse
-#import regex
+import re
 
 # Set args: input sam file, output sam file, UMI file, help message
 # How do I set up the help argument?
@@ -21,7 +21,8 @@ args = get_args()
 
 # Need regex help
 def get_umi(read_name: str) -> str:
-    ''' Isolates and returns the UMI from the end of the RNAME string from a sam file'''
+    ''' Isolates and returns the UMI from the end of the RNAME string from a sam file''''
+    # split the QNAME at colons, get the last entry in the list
     return read_name
 
 # Not sure if I'm doing this right, also how does this code work because I need to be able to comment it
@@ -45,20 +46,19 @@ def get_five_prime(pos: int, strand: str, cigar: str) -> int:
         if cigar[index] == "S":  # If the first letter in the CIGAR string is S
             num_clipped = int(cigar[:index])  # number of nucleotides clipped is the number leading up to S in the CIGAR string
             pos_5_prime -= num_clipped  # we move the 5' pos back to the start of the nucleotides that were soft-clipped off
-    else:
-        index = 0
-        holdplace = 0
-        while index < len(cigar):
-            if cigar[index].isalpha():
-                if cigar[index] == 'M' or cigar[index] == 'D':
-                    num_nucleotides = int(cigar[holdplace:index])
-                    pos_5_prime += num_nucleotides
-                    holdplace = index
-                if cigar[index] == 'S' and index == len(cigar) - 1:
-                    num_clipped = int(cigar[holdplace:index])
-                    pos_5_prime += num_clipped
-            index += 1
-  
+    else:  # reverse strand
+        # if the nucleotides are matches/mismatches or exist only in the reference (deletions/alignment gaps), we need to add
+        # that number of nucleotides to our 5' position placeholder variable 
+        things_to_add = re.findall('([0-9]+)[MDN]', cigar)  # use regex to get the number of nucleotides before M, D, or N
+        for thing_to_add in things_to_add:  # findall returned a list, so we have to parse the list
+            pos_5_prime += int(thing_to_add)  # add every number in the list to our 5' position placeholder variable
+        # if there were nucleotides soft-clipped at the 5' end of the read, we need to add that number of nucleotides to our 5'
+        # position placeholder variable
+        end_soft_clipped = re.findall('([0-9]+)S$', cigar)  # use regex to get the number of nucleotides before the S at the end of the cigar string  
+        if len(end_soft_clipped) != 0:  # if the end of the read was not soft clipped, findall will return an empty list
+            pos_5_prime += int(end_soft_clipped[0])  # if the end of the read was soft clipped, findall will return a list with one number
+    
+    return pos_5_prime
 
 # Store known UMIs in a set
 umi_set = set()
