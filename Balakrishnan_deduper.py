@@ -19,11 +19,12 @@ def get_args():
 
 args = get_args()
 
-# Need regex help
 def get_umi(read_name: str) -> str:
-    ''' Isolates and returns the UMI from the end of the RNAME string from a sam file''''
-    # split the QNAME at colons, get the last entry in the list
-    return read_name
+    ''' Isolates and returns the UMI from the end of the RNAME string from a sam file'''
+    # split the QNAME at colons
+    qname_chunks = read_name.strip().split(':')
+    # get the last entry in the list (the UMI comes after the last colon in the QNAME)
+    return qname_chunks[len(qname_chunks)-1]
 
 # Not sure if I'm doing this right, also how does this code work because I need to be able to comment it
 def get_strand(flag: int) -> str:
