@@ -64,69 +64,72 @@ def get_five_prime(pos: int, strand: str, cigar: str) -> int:
     
     return pos_5_prime
 
-# ADD A MAIN FUNCTION?
+def main():
 
-# Store known UMIs in a set
-umi_set = set()
-with open(args.umi, 'r') as UMI:
-    for line in UMI:
-        line = line.strip()
-        umi_set.add(line)
-
-with open(args.outfile, 'w') as outfile:
-    with open(args.file, 'r') as infile:
-        current_chrom = None  # holds the current chromosome reads are on
-        seen = set()  # holds the reads we've seen before
-        unknown_umi_counter = 0  # holds the number of unknown UMIs encountered
-        # Parse the input file
-        for line in infile:
+    # Store known UMIs in a set
+    umi_set = set()
+    with open(args.umi, 'r') as UMI:
+        for line in UMI:
             line = line.strip()
-            # If it is a header line
-            if line.startswith('@'):
-                # write it to the output file
-                outfile.write(line + "\n")
-            # If it is not a header line
-            else:
-                # Split the line by tabs
-                line2 = line.split()
-                #print(len(line))
-                # Read name is column 1
-                rname = line2[0]
-                # Bitwise flag is column 2
-                flag = int(line2[1])
-                # Chromosome is column 3
-                chrom = line2[2]
-                # 1-based leftmost mapping position is column 4
-                pos = int(line2[3])
-                # Cigar string is column 6
-                cigar = line2[5]
-                
-                # Isolate the UMI from the read name
-                umi = get_umi(rname)
-                #print(umi)
-                
-                #print(rname, flag, chrom, pos, cigar)
-                
-                # If the UMI is not in the known UMIs set
-                if umi not in umi_set:
-                    #print("not a known umi")
+            umi_set.add(line)
+
+    with open(args.outfile, 'w') as outfile:
+        with open(args.file, 'r') as infile:
+            current_chrom = None  # holds the current chromosome reads are on
+            seen = set()  # holds the reads we've seen before
+            unknown_umi_counter = 0  # holds the number of unknown UMIs encountered
+            # Parse the input file
+            for line in infile:
+                line = line.strip()
+                # If it is a header line
+                if line.startswith('@'):
+                    # write it to the output file
+                    outfile.write(line + "\n")
+                # If it is not a header line
+                else:
+                    # Split the line by tabs
+                    line2 = line.split()
+                    #print(len(line))
+                    # Read name is column 1
+                    rname = line2[0]
+                    # Bitwise flag is column 2
+                    flag = int(line2[1])
+                    # Chromosome is column 3
+                    chrom = line2[2]
+                    # 1-based leftmost mapping position is column 4
+                    pos = int(line2[3])
+                    # Cigar string is column 6
+                    cigar = line2[5]
+                    
+                    # Isolate the UMI from the read name
+                    umi = get_umi(rname)
                     #print(umi)
-                    unknown_umi_counter += 1
-                    continue  # skip to the next read
-                # If the UMI is a known UMI
-                else:
-                    # If we have moved to a new chromosome
-                    if chrom != current_chrom:
-                        seen.clear()  # reset seen for the new chromosome
-                current_chrom = chrom  # set current chrom to the new chromosome
-                strand = get_strand(flag)  # Extract the strand from the bitwise flag
-                # Get the 5' pos from the 1-based leftmost mapping position, strand, and cigar string
-                pos_5_prime = get_five_prime(pos, strand, cigar)
-                
-                # If the tuple consisting of UMI, strand, and 5' pos is in seen already
-                if (umi, strand, pos_5_prime) in seen:
-                    continue  # this read is a PCR duplicate, skip to the next read
-                else:
-                    seen.add((umi, strand, pos_5_prime))  # add a tuple consisting of UMI, strand, and 5' pos to seen
-                    outfile.write(line + "\n")  # this read is not a PCR duplicate, so add it to the output file
-        print(unknown_umi_counter)
+                    
+                    #print(rname, flag, chrom, pos, cigar)
+                    
+                    # If the UMI is not in the known UMIs set
+                    if umi not in umi_set:
+                        #print("not a known umi")
+                        #print(umi)
+                        unknown_umi_counter += 1
+                        continue  # skip to the next read
+                    # If the UMI is a known UMI
+                    else:
+                        # If we have moved to a new chromosome
+                        if chrom != current_chrom:
+                            seen.clear()  # reset seen for the new chromosome
+                    current_chrom = chrom  # set current chrom to the new chromosome
+                    strand = get_strand(flag)  # Extract the strand from the bitwise flag
+                    # Get the 5' pos from the 1-based leftmost mapping position, strand, and cigar string
+                    pos_5_prime = get_five_prime(pos, strand, cigar)
+                    
+                    # If the tuple consisting of UMI, strand, and 5' pos is in seen already
+                    if (umi, strand, pos_5_prime) in seen:
+                        continue  # this read is a PCR duplicate, skip to the next read
+                    else:
+                        seen.add((umi, strand, pos_5_prime))  # add a tuple consisting of UMI, strand, and 5' pos to seen
+                        outfile.write(line + "\n")  # this read is not a PCR duplicate, so add it to the output file
+            print(unknown_umi_counter)  # print the number of incorrect UMIS to standard out
+            
+if __name__ == "__main__":
+    main()
